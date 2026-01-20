@@ -136,3 +136,11 @@ npm install
 # Edit .env (DB credentials, JWT_SECRET, etc.)
 npx sequelize-cli db:migrate
 npm run dev
+```
+
+### Frontend
+```bash
+cd frontend
+npm install
+npm start
+```
