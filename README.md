@@ -71,46 +71,6 @@ A full-stack **Employee Management System** built for managing employee records,
    - Payroll reports
    - PDF/Excel export
 
-## Database Schema (Key Tables)
-
-### users (Authentication)
-
-| Column       | Data Type         | Description                  |
-|--------------|-------------------|------------------------------|
-| id           | SERIAL (PK)       | User ID                      |
-| username     | VARCHAR(100)      | Login username               |
-| email        | VARCHAR(150)      | Email                        |
-| password     | TEXT              | Hashed password              |
-| role         | VARCHAR(50)       | Admin / HR / Manager / Employee |
-| is_active    | BOOLEAN           | Active status                |
-| created_at   | TIMESTAMP         | Created date                 |
-
-### employees
-
-| Column        | Data Type         | Description                  |
-|---------------|-------------------|------------------------------|
-| employee_id   | SERIAL (PK)       | Employee ID                  |
-| user_id       | INT (FK)          | Linked user                  |
-| first_name    | VARCHAR(100)      | First name                   |
-| last_name     | VARCHAR(100)      | Last name                    |
-| dob           | DATE              | Date of birth                |
-| gender        | VARCHAR(20)       | Gender                       |
-| phone         | VARCHAR(15)       | Phone number                 |
-| address       | TEXT              | Address                      |
-| joining_date  | DATE              | Joining date                 |
-| department_id | INT               | Department                   |
-| designation   | VARCHAR(100)      | Job title                    |
-| salary        | NUMERIC(10,2)     | Base salary                  |
-| status        | VARCHAR(50)       | Active / Resigned            |
-| documents     | TEXT              | JSON of uploaded files       |
-| username      | VARCHAR(100)      | Username (from users)        |
-| created_at    | TIMESTAMP         | Record created date          |
-| updated_at    | TIMESTAMP         | Record updated date          |
-| created_by    | INT (FK)          | User who created             |
-| updated_by    | INT (FK)          | User who last updated        |
-
-(Other tables: departments, attendance, leave_requests, payroll, performance_reviews — see detailed spec)
-
 ## Pages & Navigation
 
 1. **Login Page** — Authentication & role redirection
@@ -144,3 +104,4 @@ cd frontend
 npm install
 npm start
 ```
+
