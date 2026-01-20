@@ -1,0 +1,9 @@
+{
+  "development": {
+    "username": "rayma09",
+    "password": null,
+    "database": "ems_db",
+    "host": "127.0.0.1",
+    "dialect": "postgres"
+  }
+}
