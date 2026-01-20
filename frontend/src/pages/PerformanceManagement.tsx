@@ -86,6 +86,7 @@ const PerformanceManagement: React.FC = () => {
       try {
         const res = await api.get('/employees/current');
         const role = res.data?.User?.role || res.data?.role || 'unknown';
+        console.log('Current user role fetched:', role);
         setCurrentUserRole(role.toLowerCase());
       } catch (err: any) {
         console.error('Failed to fetch current user role:', err);
@@ -128,31 +129,41 @@ const PerformanceManagement: React.FC = () => {
   const fetchEmployees = async () => {
     try {
       const res = await api.get('/employees');
+      console.log('Raw employees from /api/employees:', res.data);
+
       let filtered = res.data
         .map((emp: any) => ({
           employee_id: emp.employee_id || emp.id || null,
           first_name: emp.first_name || 'Unknown',
           last_name: emp.last_name || '',
-          designation: emp.designation || 'N/A',
+          designation: (emp.designation || 'N/A').trim(),
         }))
         .filter((emp: Employee) => emp.employee_id !== null);
 
-      // Role-based filtering using real user role
-      if (currentUserRole === 'manager') {
+      console.log('After basic mapping & id filter:', filtered);
+
+      // Role-based filtering
+      const role = currentUserRole.toLowerCase();
+
+      if (role === 'manager') {
         filtered = filtered.filter(
-          (emp: Employee) => emp.designation.toLowerCase() === 'employee'
+          (emp) => emp.designation.toLowerCase() === 'employee'
         );
-      } else if (currentUserRole === 'admin') {
-        filtered = filtered.filter(
-          (emp: Employee) => emp.designation.toLowerCase() === 'manager'
+      } else if (role === 'admin') {
+        filtered = filtered.filter((emp) =>
+          emp.designation.toLowerCase().includes('manager')
         );
+      } else {
+        filtered = [];
       }
 
       // Always exclude admin & hr
-      filtered = filtered.filter((emp: Employee) => {
+      filtered = filtered.filter((emp) => {
         const des = emp.designation.toLowerCase();
         return des !== 'admin' && des !== 'hr';
       });
+
+      console.log('Final filtered employees for dropdown:', filtered);
 
       setEmployees(filtered);
     } catch (err: any) {
@@ -183,7 +194,7 @@ const PerformanceManagement: React.FC = () => {
       employee_id: String(row.employee_id || ''),
       rating: row.rating,
       feedback: row.feedback,
-      review_month: new Date().toISOString().slice(0, 7), 
+      review_month: new Date().toISOString().slice(0, 7),
     });
     setOpen(true);
   };
@@ -270,22 +281,24 @@ const PerformanceManagement: React.FC = () => {
     {
       field: 'employee_name',
       headerName: 'Employee',
-      flex: 1.5,
-      minWidth: 240,
+      flex: 1.2,           
+      minWidth: 180,     
     },
     {
       field: 'rating',
       headerName: 'Rating',
-      width: 140,
+      width: 280,         
       align: 'center',
       headerAlign: 'center',
       renderCell: (params) => (
-        <Rating
-          value={params.value as number}
-          readOnly
-          precision={1}
-          size="medium"
-        />
+        <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+          <Rating
+            value={params.value as number}
+            readOnly
+            precision={1}
+            size="medium"
+          />
+        </Box>
       ),
     },
     {
@@ -387,8 +400,10 @@ const PerformanceManagement: React.FC = () => {
                 {currentUserRole === 'manager'
                   ? 'No employees available under your team'
                   : currentUserRole === 'admin'
-                  ? 'No managers available for review'
-                  : 'No eligible employees available'}
+                  ? 'No managers available for review (check if designation contains "manager")'
+                  : currentUserRole === 'unknown'
+                  ? 'Loading your role... Please wait'
+                  : `No eligible employees available for role: ${currentUserRole}`}
               </MenuItem>
             ) : (
               employees.map((emp, idx) => (
@@ -413,7 +428,7 @@ const PerformanceManagement: React.FC = () => {
             required
             InputLabelProps={{ shrink: true }}
             inputProps={{
-              min: '2020-01', // adjust min/max as needed
+              min: '2020-01',
               max: new Date().toISOString().slice(0, 7),
             }}
           />
@@ -446,7 +461,7 @@ const PerformanceManagement: React.FC = () => {
 
         <DialogActions sx={{ px: 3, pb: 3 }}>
           <Button onClick={handleClose}>Cancel</Button>
-          <Button variant="contained" onClick={handleSubmit}>
+          <Button variant="contained" onClick={handleSubmit} disabled={employees.length === 0}>
             {isEditMode ? 'Update Review' : 'Submit Review'}
           </Button>
         </DialogActions>
