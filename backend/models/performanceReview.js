@@ -24,6 +24,10 @@ const PerformanceReview = sequelize.define('PerformanceReview', {
     type: DataTypes.DATEONLY,
     defaultValue: DataTypes.NOW,
   },
+  review_month: {
+        type: DataTypes.STRING(7),      
+        allowNull: false,                 
+  },
 }, {
   tableName: 'performance_reviews',
   timestamps: false,

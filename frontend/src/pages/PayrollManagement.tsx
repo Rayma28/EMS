@@ -140,7 +140,6 @@ const PayrollManagement: React.FC = () => {
           salary: emp.salary || 0,
         }))
         .filter((emp: Employee) => emp.employee_id !== null)
-        // Exclude Admin users from the dropdown
         .filter((emp: Employee) => 
           emp.designation.toLowerCase() !== 'admin'
         );

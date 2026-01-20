@@ -4,7 +4,7 @@ const { authenticate, authorize } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', authenticate, authorize(['Admin', 'HR', 'Superuser']), getEmployees);
+router.get('/', authenticate, authorize(['Admin', 'HR', 'Manager', 'Superuser']), getEmployees);
 router.get('/current', authenticate, authorize(['Admin', 'HR', 'Superuser', 'Employee', 'Manager']), getCurrentEmployee);
 router.get('/:id', authenticate, authorize(['Admin', 'HR', 'Superuser']), getEmployeeById);
 router.post('/', authenticate, authorize(['Admin', 'HR', 'Superuser']), addEmployee); 

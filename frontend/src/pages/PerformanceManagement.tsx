@@ -7,6 +7,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogContentText,
   DialogActions,
   TextField,
   MenuItem,
@@ -15,7 +16,7 @@ import {
   Tooltip,
 } from '@mui/material';
 import { DataGrid, GridColDef, GridColumnVisibilityModel } from '@mui/x-data-grid';
-import { Edit as EditIcon } from '@mui/icons-material';
+import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import api from '../services/api';
 import {
   pageContainer,
@@ -36,17 +37,18 @@ interface Employee {
 interface ReviewRow {
   id: number | string;
   employee_name: string;
-  employee_id: number;      
+  employee_id: number;
   rating: number;
   feedback: string;
   date: string;
 }
 
 interface FormData {
-  review_id?: number | string;  
+  review_id?: number | string;
   employee_id: string;
   rating: number | null;
   feedback: string;
+  review_month: string; // YYYY-MM format
 }
 
 const PerformanceManagement: React.FC = () => {
@@ -54,10 +56,16 @@ const PerformanceManagement: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [open, setOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<number | null>(null);
+
+  const [currentUserRole, setCurrentUserRole] = useState<string>('unknown');
+
   const [form, setForm] = useState<FormData>({
     employee_id: '',
     rating: null,
     feedback: '',
+    review_month: new Date().toISOString().slice(0, 7), // default: current month
   });
 
   const optionalColumns = ['rating', 'date'] as const;
@@ -73,9 +81,29 @@ const PerformanceManagement: React.FC = () => {
   const { showNotification } = useNotification();
 
   useEffect(() => {
-    fetchReviews();
-    fetchEmployees();
+    // Fetch current user's role once on mount
+    const fetchRole = async () => {
+      try {
+        const res = await api.get('/employees/current');
+        const role = res.data?.User?.role || res.data?.role || 'unknown';
+        setCurrentUserRole(role.toLowerCase());
+      } catch (err: any) {
+        console.error('Failed to fetch current user role:', err);
+        showNotification('Could not determine your role. Some features may be limited.', 'warning');
+        setCurrentUserRole('unknown');
+      }
+    };
+
+    fetchRole();
   }, []);
+
+  useEffect(() => {
+    // Only fetch data after role is known
+    if (currentUserRole !== 'unknown') {
+      fetchReviews();
+      fetchEmployees();
+    }
+  }, [currentUserRole]);
 
   const fetchReviews = async () => {
     try {
@@ -100,29 +128,51 @@ const PerformanceManagement: React.FC = () => {
   const fetchEmployees = async () => {
     try {
       const res = await api.get('/employees');
-      const validEmployees = res.data
+      let filtered = res.data
         .map((emp: any) => ({
           employee_id: emp.employee_id || emp.id || null,
           first_name: emp.first_name || 'Unknown',
           last_name: emp.last_name || '',
           designation: emp.designation || 'N/A',
         }))
-        .filter((emp: Employee) => emp.employee_id !== null)
-        .filter((emp: Employee) => {
-          const des = emp.designation.toLowerCase();
-          return des !== 'admin' && des !== 'hr';
-        });
+        .filter((emp: Employee) => emp.employee_id !== null);
 
-      setEmployees(validEmployees);
+      // Role-based filtering using real user role
+      if (currentUserRole === 'manager') {
+        filtered = filtered.filter(
+          (emp: Employee) => emp.designation.toLowerCase() === 'employee'
+        );
+      } else if (currentUserRole === 'admin') {
+        filtered = filtered.filter(
+          (emp: Employee) => emp.designation.toLowerCase() === 'manager'
+        );
+      }
+
+      // Always exclude admin & hr
+      filtered = filtered.filter((emp: Employee) => {
+        const des = emp.designation.toLowerCase();
+        return des !== 'admin' && des !== 'hr';
+      });
+
+      setEmployees(filtered);
     } catch (err: any) {
       console.error('Failed to load employees:', err);
-      showNotification('Failed to load employees list', 'error');
+      if (err.response?.status === 403) {
+        showNotification('You do not have permission to view employees', 'error');
+      } else {
+        showNotification('Failed to load employees list', 'error');
+      }
     }
   };
 
   const handleOpenCreate = () => {
     setIsEditMode(false);
-    setForm({ employee_id: '', rating: null, feedback: '' });
+    setForm({
+      employee_id: '',
+      rating: null,
+      feedback: '',
+      review_month: new Date().toISOString().slice(0, 7),
+    });
     setOpen(true);
   };
 
@@ -133,8 +183,14 @@ const PerformanceManagement: React.FC = () => {
       employee_id: String(row.employee_id || ''),
       rating: row.rating,
       feedback: row.feedback,
+      review_month: new Date().toISOString().slice(0, 7), 
     });
     setOpen(true);
+  };
+
+  const handleOpenDelete = (id: number) => {
+    setDeleteId(id);
+    setDeleteOpen(true);
   };
 
   const handleClose = () => {
@@ -142,15 +198,42 @@ const PerformanceManagement: React.FC = () => {
     setIsEditMode(false);
   };
 
+  const handleDeleteConfirm = async () => {
+    if (!deleteId) return;
+    try {
+      await api.delete(`/performance/${deleteId}`);
+      showNotification('Performance review deleted successfully', 'success');
+      fetchReviews();
+    } catch (err: any) {
+      console.error('Delete failed:', err);
+      showNotification(
+        err.response?.data?.message || 'Failed to delete performance review',
+        'error'
+      );
+    } finally {
+      setDeleteOpen(false);
+      setDeleteId(null);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!form.employee_id) {
       showNotification('Please select an employee', 'error');
       return;
     }
-    if (form.rating === null || form.rating < 0.5) {
-      showNotification('Please provide a rating', 'error');
+
+    if (!form.review_month || !/^\d{4}-\d{2}$/.test(form.review_month)) {
+      showNotification('Please select a valid review month (YYYY-MM)', 'error');
       return;
     }
+
+    const ratingValue = form.rating ? Math.round(form.rating) : null;
+
+    if (ratingValue === null || ratingValue < 1 || ratingValue > 5) {
+      showNotification('Please provide a rating between 1 and 5', 'error');
+      return;
+    }
+
     if (!form.feedback.trim()) {
       showNotification('Feedback is required', 'error');
       return;
@@ -159,17 +242,16 @@ const PerformanceManagement: React.FC = () => {
     try {
       const payload = {
         employee_id: Number(form.employee_id),
-        rating: form.rating,
+        rating: ratingValue,
         feedback: form.feedback.trim(),
+        review_month: form.review_month,
       };
 
       if (isEditMode && form.review_id) {
         await api.put(`/performance/${form.review_id}`, payload);
         showNotification('Performance review updated successfully', 'success');
       } else {
-        await api.post('/performance', {
-          ...payload,
-        });
+        await api.post('/performance', payload);
         showNotification('Performance review submitted successfully', 'success');
       }
 
@@ -188,44 +270,66 @@ const PerformanceManagement: React.FC = () => {
     {
       field: 'employee_name',
       headerName: 'Employee',
-      flex: 1,
-      minWidth: 220,
+      flex: 1.5,
+      minWidth: 240,
     },
     {
       field: 'rating',
       headerName: 'Rating',
-      width: 160,
+      width: 140,
+      align: 'center',
+      headerAlign: 'center',
       renderCell: (params) => (
-        <Rating value={params.value as number} readOnly precision={0.5} />
+        <Rating
+          value={params.value as number}
+          readOnly
+          precision={1}
+          size="medium"
+        />
       ),
     },
     {
       field: 'feedback',
       headerName: 'Feedback',
-      flex: 2,
-      minWidth: 320,
+      flex: 3,
+      minWidth: 380,
     },
     {
       field: 'date',
       headerName: 'Review Date',
-      width: 140,
+      width: 160,
+      align: 'center',
+      headerAlign: 'center',
     },
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 140,
+      align: 'center',
+      headerAlign: 'center',
       sortable: false,
       filterable: false,
       renderCell: (params) => (
-        <Tooltip title="Edit Review">
-          <IconButton
-            size="small"
-            color="primary"
-            onClick={() => handleOpenEdit(params.row as ReviewRow)}
-          >
-            <EditIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
+        <>
+          <Tooltip title="Edit Review">
+            <IconButton
+              size="small"
+              color="primary"
+              onClick={() => handleOpenEdit(params.row as ReviewRow)}
+            >
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip title="Delete Review">
+            <IconButton
+              size="small"
+              color="error"
+              onClick={() => handleOpenDelete(Number(params.row.id))}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        </>
       ),
     },
   ];
@@ -276,10 +380,16 @@ const PerformanceManagement: React.FC = () => {
             value={form.employee_id}
             onChange={(e) => setForm({ ...form, employee_id: e.target.value })}
             required
-            disabled={isEditMode} // prevent changing employee on edit
+            disabled={isEditMode}
           >
             {employees.length === 0 ? (
-              <MenuItem disabled>No employees available</MenuItem>
+              <MenuItem disabled>
+                {currentUserRole === 'manager'
+                  ? 'No employees available under your team'
+                  : currentUserRole === 'admin'
+                  ? 'No managers available for review'
+                  : 'No eligible employees available'}
+              </MenuItem>
             ) : (
               employees.map((emp, idx) => (
                 <MenuItem
@@ -292,15 +402,31 @@ const PerformanceManagement: React.FC = () => {
             )}
           </TextField>
 
+          {/* Month Picker */}
+          <TextField
+            fullWidth
+            label="Review Month"
+            type="month"
+            margin="dense"
+            value={form.review_month}
+            onChange={(e) => setForm({ ...form, review_month: e.target.value })}
+            required
+            InputLabelProps={{ shrink: true }}
+            inputProps={{
+              min: '2020-01', // adjust min/max as needed
+              max: new Date().toISOString().slice(0, 7),
+            }}
+          />
+
           <Box sx={{ my: 2 }}>
             <Typography component="legend" variant="body2" gutterBottom>
-              Rating
+              Rating (1–5 stars)
             </Typography>
             <Rating
               name="review-rating"
               value={form.rating}
               onChange={(_, value) => setForm({ ...form, rating: value })}
-              precision={0.5}
+              precision={1}
               size="large"
             />
           </Box>
@@ -322,6 +448,26 @@ const PerformanceManagement: React.FC = () => {
           <Button onClick={handleClose}>Cancel</Button>
           <Button variant="contained" onClick={handleSubmit}>
             {isEditMode ? 'Update Review' : 'Submit Review'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this performance review? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 3 }}>
+          <Button onClick={() => setDeleteOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteConfirm}
+          >
+            Delete
           </Button>
         </DialogActions>
       </Dialog>
