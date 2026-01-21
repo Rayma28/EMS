@@ -34,7 +34,6 @@ const addReview = async (req, res) => {
     return res.status(401).json({ message: 'Unauthorized - please log in' });
   }
 
-  // Basic validation
   if (!employee_id) {
     return res.status(400).json({ message: 'employee_id is required' });
   }
@@ -46,7 +45,7 @@ const addReview = async (req, res) => {
   }
 
   const parsedRating = Number(rating);
-  if (isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+  if (isNaN(parsedRating) || parsedRating < 0.5 || parsedRating > 5.0) {
     return res.status(400).json({ message: 'Rating must be a number between 1 and 5' });
   }
 
@@ -55,12 +54,11 @@ const addReview = async (req, res) => {
   }
 
   try {
-    // Prevent duplicate review from the same reviewer for the same employee in the same month
     const existing = await PerformanceReview.findOne({
       where: {
         employee_id,
         reviewer_id,
-        review_month,           // ← key change: now includes month
+        review_month,          
       },
     });
 
@@ -76,7 +74,7 @@ const addReview = async (req, res) => {
       rating: parsedRating,
       feedback: feedback.trim(),
       review_date: new Date(),
-      review_month,             // ← store the month
+      review_month,           
     });
 
     // Return enhanced object
@@ -122,8 +120,7 @@ const updateReview = async (req, res) => {
       return res.status(404).json({ message: 'Performance review not found' });
     }
 
-    // Authorization: only the original reviewer or admin can update
-    const isAdmin = req.user.role === 'admin'; // adjust based on your role field
+    const isAdmin = req.user.role === 'admin'; 
     if (review.reviewer_id !== currentUserId && !isAdmin) {
       return res.status(403).json({ message: 'You are not authorized to update this review' });
     }
@@ -132,7 +129,7 @@ const updateReview = async (req, res) => {
 
     if (rating !== undefined) {
       const parsedRating = Number(rating);
-      if (isNaN(parsedRating) || parsedRating < 1 || parsedRating > 5) {
+      if (isNaN(parsedRating) || parsedRating < 0.5 || parsedRating > 5.0) {
         return res.status(400).json({ message: 'Rating must be between 1 and 5' });
       }
       review.rating = parsedRating;
@@ -192,8 +189,7 @@ const deleteReview = async (req, res) => {
       return res.status(404).json({ message: 'Performance review not found' });
     }
 
-    // Authorization: only the reviewer or admin can delete
-    const isAdmin = req.user.role === 'admin'; // adjust based on your role field
+    const isAdmin = req.user.role === 'admin'; 
     if (review.reviewer_id !== currentUserId && !isAdmin) {
       return res.status(403).json({ message: 'You are not authorized to delete this review' });
     }

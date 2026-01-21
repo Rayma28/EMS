@@ -48,7 +48,7 @@ interface FormData {
   employee_id: string;
   rating: number | null;
   feedback: string;
-  review_month: string; // YYYY-MM format
+  review_month: string; 
 }
 
 const PerformanceManagement: React.FC = () => {
@@ -65,7 +65,7 @@ const PerformanceManagement: React.FC = () => {
     employee_id: '',
     rating: null,
     feedback: '',
-    review_month: new Date().toISOString().slice(0, 7), // default: current month
+    review_month: new Date().toISOString().slice(0, 7), 
   });
 
   const optionalColumns = ['rating', 'date'] as const;
@@ -81,7 +81,6 @@ const PerformanceManagement: React.FC = () => {
   const { showNotification } = useNotification();
 
   useEffect(() => {
-    // Fetch current user's role once on mount
     const fetchRole = async () => {
       try {
         const res = await api.get('/employees/current');
@@ -142,15 +141,14 @@ const PerformanceManagement: React.FC = () => {
 
       console.log('After basic mapping & id filter:', filtered);
 
-      // Role-based filtering
       const role = currentUserRole.toLowerCase();
 
       if (role === 'manager') {
         filtered = filtered.filter(
-          (emp) => emp.designation.toLowerCase() === 'employee'
+          (emp: Employee) => emp.designation.toLowerCase() === 'employee'
         );
       } else if (role === 'admin') {
-        filtered = filtered.filter((emp) =>
+        filtered = filtered.filter((emp: Employee) =>
           emp.designation.toLowerCase().includes('manager')
         );
       } else {
@@ -158,7 +156,7 @@ const PerformanceManagement: React.FC = () => {
       }
 
       // Always exclude admin & hr
-      filtered = filtered.filter((emp) => {
+      filtered = filtered.filter((emp: Employee) => {
         const des = emp.designation.toLowerCase();
         return des !== 'admin' && des !== 'hr';
       });
@@ -238,10 +236,15 @@ const PerformanceManagement: React.FC = () => {
       return;
     }
 
-    const ratingValue = form.rating ? Math.round(form.rating) : null;
+    const ratingValue = form.rating; 
 
-    if (ratingValue === null || ratingValue < 1 || ratingValue > 5) {
-      showNotification('Please provide a rating between 1 and 5', 'error');
+    if (ratingValue === null || ratingValue < 0.5 || ratingValue > 5.0) {
+      showNotification('Please provide a rating between 0.5 and 5.0', 'error');
+      return;
+    }
+
+    if ((ratingValue * 2) % 1 !== 0) {
+      showNotification('Rating must be in 0.5 increments (e.g. 1.0, 1.5, 2.0, ..., 5.0)', 'error');
       return;
     }
 
@@ -253,7 +256,7 @@ const PerformanceManagement: React.FC = () => {
     try {
       const payload = {
         employee_id: Number(form.employee_id),
-        rating: ratingValue,
+        rating: ratingValue,           
         feedback: form.feedback.trim(),
         review_month: form.review_month,
       };
@@ -281,21 +284,21 @@ const PerformanceManagement: React.FC = () => {
     {
       field: 'employee_name',
       headerName: 'Employee',
-      flex: 1.2,           
-      minWidth: 180,     
+      flex: 1.2,
+      minWidth: 240,
     },
     {
       field: 'rating',
       headerName: 'Rating',
-      width: 280,         
-      align: 'center',
-      headerAlign: 'center',
+      width: 240,
+      align: 'left',
+      headerAlign: 'left',
       renderCell: (params) => (
-        <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'left', width: '100%' }}>
           <Rating
             value={params.value as number}
             readOnly
-            precision={1}
+            precision={0.5}  
             size="medium"
           />
         </Box>
@@ -310,9 +313,9 @@ const PerformanceManagement: React.FC = () => {
     {
       field: 'date',
       headerName: 'Review Date',
-      width: 160,
-      align: 'center',
-      headerAlign: 'center',
+      width: 240,
+      align: 'left',
+      headerAlign: 'left',
     },
     {
       field: 'actions',
@@ -435,13 +438,13 @@ const PerformanceManagement: React.FC = () => {
 
           <Box sx={{ my: 2 }}>
             <Typography component="legend" variant="body2" gutterBottom>
-              Rating (1–5 stars)
+              Rating (0.5-5.0 stars)
             </Typography>
             <Rating
               name="review-rating"
               value={form.rating}
               onChange={(_, value) => setForm({ ...form, rating: value })}
-              precision={1}
+              precision={0.5}
               size="large"
             />
           </Box>

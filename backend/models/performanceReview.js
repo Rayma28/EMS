@@ -15,7 +15,7 @@ const PerformanceReview = sequelize.define('PerformanceReview', {
     type: DataTypes.INTEGER,
   },
   rating: {
-    type: DataTypes.INTEGER,
+    type: DataTypes.FLOAT,
   },
   feedback: {
     type: DataTypes.TEXT,
