@@ -27,9 +27,11 @@ import Unauthorized from './pages/Unauthorized.tsx';
 import DailyAttendance from './pages/DailyAttendance.tsx';
 import UserManagement from './pages/UserManagement.tsx';
 import PerformanceManagement from './pages/PerformanceManagement.tsx';
+import Reports from './pages/Reports.tsx'
 
 // Layout
 import Layout from './components/Layout/Layout.tsx';
+import { Report } from '@mui/icons-material';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -92,6 +94,10 @@ const AppContent: React.FC = () => {
         <Route
           path="/performance"
           element={<PrivateRoute roles={['Admin', 'Manager', 'Superuser']}><PerformanceManagement /></PrivateRoute>}
+        />
+        <Route
+          path="/reports"
+          element={<PrivateRoute roles={['Admin', 'HR', 'Superuser']}><Reports /></PrivateRoute>}
         />
 
         <Route path="/unauthorized" element={<Unauthorized />} />

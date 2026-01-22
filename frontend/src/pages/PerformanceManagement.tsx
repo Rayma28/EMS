@@ -98,7 +98,6 @@ const PerformanceManagement: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Only fetch data after role is known
     if (currentUserRole !== 'unknown') {
       fetchReviews();
       fetchEmployees();
@@ -130,14 +129,14 @@ const PerformanceManagement: React.FC = () => {
       const res = await api.get('/employees');
       console.log('Raw employees from /api/employees:', res.data);
 
-      let filtered = res.data
+      let filtered: Employee[] = res.data
         .map((emp: any) => ({
           employee_id: emp.employee_id || emp.id || null,
           first_name: emp.first_name || 'Unknown',
           last_name: emp.last_name || '',
           designation: (emp.designation || 'N/A').trim(),
         }))
-        .filter((emp: Employee) => emp.employee_id !== null);
+        .filter((emp: any): emp is Employee => emp.employee_id !== null);
 
       console.log('After basic mapping & id filter:', filtered);
 
