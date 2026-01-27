@@ -125,7 +125,6 @@ const getAllMonthlySummary = async (req, res) => {
         { '$Employee.User.role$': 'Manager' }
       ];
     }
-    // HR, Admin, Superuser → see everyone (no additional where condition)
 
     const attendances = await Attendance.findAll(queryOptions);
 
