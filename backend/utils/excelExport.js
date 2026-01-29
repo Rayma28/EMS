@@ -5,12 +5,17 @@ const generateExcel = async (data, sheetName) => {
   const workbook = new ExcelJS.Workbook();
   const sheet = workbook.addWorksheet(sheetName);
 
-  if (!data || (Array.isArray(data) && data.length === 0)) return workbook.xlsx.writeBuffer();
+  // Default header style
+  const headerStyle = {
+    font: { bold: true, size: 12, color: { argb: 'FFFFFFFF' } },
+    fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF4F81BD' } },
+    alignment: { horizontal: 'center', vertical: 'middle' },
+  };
 
-  /* ===================== EMPLOYEE REPORT ===================== */
+  /*=== EMPLOYEE REPORT ===*/
   if (sheetName === 'employees') {
     const rows = data.map((emp, index) => {
-      const e = emp.dataValues;
+      const e = emp.dataValues || emp; 
       return {
         sr_no: index + 1,
         name: `${e.first_name} ${e.last_name}`,
@@ -54,28 +59,39 @@ const generateExcel = async (data, sheetName) => {
       { header: 'Next Increment', key: 'next_increment', width: 16 },
     ];
 
+    sheet.getRow(1).eachCell((cell) => (cell.style = headerStyle));
     rows.forEach(row => sheet.addRow(row));
   }
 
-  /* ===================== ATTENDANCE REPORT ===================== */
-  if (sheetName === 'attendance') {
-    const { attendance = [], leaves = [] } = data;
+  /*=== ATTENDANCE REPORT ===*/
+  else if (sheetName === 'attendance') {
+    const { attendances = [], leaves = [] } = data; 
+
+    // Build attendance map (present days per employee)
     const attendanceMap = {};
 
-    attendance.forEach(att => {
+    attendances.forEach(att => {
       const emp = att.Employee;
       if (!emp) return;
       const empId = emp.employee_id;
-      if (!attendanceMap[empId]) attendanceMap[empId] = { name: `${emp.first_name} ${emp.last_name}`, present: 0, leave: 0 };
+      if (!attendanceMap[empId]) {
+        attendanceMap[empId] = {
+          name: `${emp.first_name} ${emp.last_name}`,
+          present: 0,
+          leave: 0,
+        };
+      }
       attendanceMap[empId].present += 1;
     });
 
+    // Add leave days (calculate overlapping days in the period)
     leaves.forEach(leave => {
       const empId = leave.employee_id;
       if (!attendanceMap[empId]) return;
-      const from = dayjs(leave.from_date);
-      const to = dayjs(leave.to_date);
-      const leaveDays = to.diff(from, 'day') + 1;
+
+      const from = dayjs(leave.start_date);
+      const to = dayjs(leave.end_date);
+      const leaveDays = to.diff(from, 'day') + 1; 
       attendanceMap[empId].leave += leaveDays;
     });
 
@@ -87,15 +103,31 @@ const generateExcel = async (data, sheetName) => {
       { header: 'Attendance %', key: 'percentage', width: 18 },
     ];
 
-    Object.values(attendanceMap).forEach((emp, index) => {
+    sheet.getRow(1).eachCell((cell) => (cell.style = headerStyle));
+
+    const rows = Object.values(attendanceMap).map((emp, index) => {
       const totalDays = emp.present + emp.leave;
       const percentage = totalDays > 0 ? ((emp.present / totalDays) * 100).toFixed(2) : '0.00';
-      sheet.addRow({ sr_no: index + 1, name: emp.name, present: emp.present, leave: emp.leave, percentage: `${percentage}%` });
+      return {
+        sr_no: index + 1,
+        name: emp.name,
+        present: emp.present,
+        leave: emp.leave,
+        percentage: `${percentage}%`,
+      };
     });
+
+    if (rows.length === 0) {
+      sheet.addRow(['No attendance or leave records found for the selected period.']);
+      sheet.getRow(2).font = { italic: true };
+      sheet.getRow(2).alignment = { horizontal: 'center' };
+    } else {
+      rows.forEach(row => sheet.addRow(row));
+    }
   }
 
-  /* ===================== PAYROLL REPORT ===================== */
-  if (sheetName === 'payroll') {
+  /*=== PAYROLL REPORT ===*/
+  else if (sheetName === 'payroll') {
     sheet.columns = [
       { header: 'Sr No.', key: 'sr_no', width: 8 },
       { header: 'Employee Name', key: 'name', width: 25 },
@@ -103,6 +135,8 @@ const generateExcel = async (data, sheetName) => {
       { header: 'Salary', key: 'salary', width: 15 },
       { header: 'Payment Date', key: 'date', width: 15 },
     ];
+
+    sheet.getRow(1).eachCell((cell) => (cell.style = headerStyle));
 
     data.forEach((pay, index) => {
       sheet.addRow({
@@ -115,11 +149,10 @@ const generateExcel = async (data, sheetName) => {
     });
   }
 
-  sheet.getRow(1).font = { bold: true };
   sheet.views = [{ state: 'frozen', ySplit: 1 }];
   sheet.getColumn('sr_no').alignment = { horizontal: 'left' };
 
   return workbook.xlsx.writeBuffer();
-};
+}
 
 module.exports = { generateExcel };

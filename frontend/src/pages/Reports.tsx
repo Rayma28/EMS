@@ -1,147 +1,265 @@
 // src/pages/Reports.tsx
 import React, { useState } from 'react';
-import { Typography, Button, Box, Grid, TextField } from '@mui/material';
+import {
+  Typography,
+  Button,
+  Box,
+  Grid,
+  TextField,
+  CircularProgress,
+  Alert,
+} from '@mui/material';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 import api from '../services/api';
 
 type ReportType = 'employees' | 'attendance' | 'payroll';
 
 const Reports: React.FC = () => {
-  const [month, setMonth] = useState('');
-  const [year, setYear] = useState('');
+  const [month, setMonth] = useState<string>('');
+  const [year, setYear] = useState<string>('');   
+  const [loading, setLoading] = useState<ReportType | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const currentYear = new Date().getFullYear();
 
   const handleExport = async (type: ReportType) => {
-    try {
-      const params: any = {};
+    setLoading(type);
+    setError(null);
 
-      // Filters for attendance and payroll only
+    try {
+      const params: Record<string, string> = {};
+
+      // Only attendance & payroll support filters
       if (type === 'attendance' || type === 'payroll') {
-        if (month) params.month = month;
-        else if (year) params.year = year;
-        else {
-          alert('Please select either a month or a year');
+        if (!month && !year) {
+          setError('Please select month or year for Attendance/Payroll reports');
           return;
         }
+        if (month) params.month = month;
+        if (year) params.year = year;
       }
 
-      const res = await api.get(`/reports/${type}`, {
+      const response = await api.get(`/reports/${type}`, {
         params,
         responseType: 'blob',
       });
 
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const filename = `${type}_report${month ? `_${month}` : year ? `_${year}` : ''}.xlsx`;
+      const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute(
-        'download',
-        `${type}_report${month ? `_${month}` : year ? `_${year}` : ''}.xlsx`
-      );
+      link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
+
+      // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error(`Failed to download ${type} report:`, error);
+    } catch (err: any) {
+      console.error(`Failed to export ${type} report:`, err);
+      setError(
+        err.response?.data?.message ||
+          `Failed to download ${type} report. Please try again.`
+      );
+    } finally {
+      setLoading(null);
     }
   };
 
+  const isLoading = (type: ReportType) => loading === type;
+
   return (
-    <Box sx={{ p: 3 }}>
-      <Typography variant="h4" gutterBottom>
-        Reports
-      </Typography>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <Box sx={{ p: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          Reports
+        </Typography>
 
-      {/*=== Common Filter ===*/}
-      <Box
-        p={3}
-        mb={3}
-        border="1px solid"
-        borderRadius={2}
-        display="flex"
-        alignItems="center"
-        gap={2}
-        flexWrap="wrap"
-      >
-        <Typography variant="h6">Filter (applies to Attendance & Payroll)</Typography>
-
-        <TextField
-          label="Month"
-          type="month"
-          value={month}
-          onChange={(e) => {
-            setMonth(e.target.value);
-            setYear('');
+        {/* Filters for Attendance & Payroll */}
+        <Box
+          sx={{
+            mb: 4,
+            p: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+            bgcolor: 'background.paper',
           }}
-          disabled={!!year}
-          sx={{ minWidth: 160 }}
-          InputLabelProps={{ shrink: true }}
-        />
+        >
+          <Typography variant="h6" gutterBottom>
+            Filter (for Attendance & Payroll Reports)
+          </Typography>
 
-        <TextField
-          label="Year"
-          type="date"
-          value={year ? `${year}-01-01` : ''}
-          onChange={(e) => {
-            const selectedYear = new Date(e.target.value).getFullYear();
-            setYear(selectedYear.toString());
-            setMonth('');
-          }}
-          disabled={!!month}
-          sx={{ minWidth: 160 }}
-          InputLabelProps={{ shrink: true }}
-          helperText="Select any date to generate yearly report"
-        />
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              gap: 3, 
+              flexWrap: 'wrap', 
+              alignItems: 'flex-end',
+              '& .MuiFormControl-root': {
+                marginTop: 0,
+              },
+            }}
+          >
+            {/* Month Picker */}
+            <TextField
+              label="Month"
+              type="month"
+              value={month}
+              onChange={(e) => {
+                const newMonth = e.target.value;
+                setMonth(newMonth);
+                if (newMonth) setYear('');
+              }}
+              InputLabelProps={{ shrink: true }}
+              sx={{ width: 200 }}
+            />
+
+            {/* Year Picker */}
+            <DatePicker
+              label="Year"
+              views={['year']} 
+              value={year ? dayjs(`${year}-01-01`) : null}
+              onChange={(newValue) => {
+                if (newValue) {
+                  const selectedYear = newValue.year().toString();
+                  setYear(selectedYear);
+                  setMonth(''); 
+                } else {
+                  setYear('');
+                }
+              }}
+              minDate={dayjs('2000-01-01')}
+              maxDate={dayjs(`${currentYear + 5}-12-31`)}
+              slotProps={{
+                textField: {
+                  sx: { width: 200 },
+                },
+              }}
+            />
+          </Box>
+        </Box>
+
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        <Grid container spacing={3}>
+          {/* Employee Report no filter needed */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Box
+              p={4}
+              border="1px solid"
+              borderColor="divider"
+              borderRadius={2}
+              textAlign="center"
+              bgcolor="background.paper"
+              minHeight={180}
+              display="flex"
+              flexDirection="column"
+              justifyContent="center"
+            >
+              <Typography variant="h6" gutterBottom>
+                Employee Report
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => handleExport('employees')}
+                disabled={isLoading('employees')}
+                fullWidth
+                sx={{ mt: 2, py: 1.5 }}
+              >
+                {isLoading('employees') ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Exporting...
+                  </>
+                ) : (
+                  'Export Excel'
+                )}
+              </Button>
+            </Box>
+          </Grid>
+
+          {/* Attendance Report */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Box
+              p={4}
+              border="1px solid"
+              borderColor="divider"
+              borderRadius={2}
+              textAlign="center"
+              bgcolor="background.paper"
+              minHeight={180}
+              display="flex"
+              flexDirection="column"
+              justifyContent="center"
+            >
+              <Typography variant="h6" gutterBottom>
+                Attendance Report
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => handleExport('attendance')}
+                disabled={isLoading('attendance') || (!month && !year)}
+                fullWidth
+                sx={{ mt: 2, py: 1.5 }}
+              >
+                {isLoading('attendance') ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Exporting...
+                  </>
+                ) : (
+                  'Export Excel'
+                )}
+              </Button>
+            </Box>
+          </Grid>
+
+          {/* Payroll Report */}
+          <Grid item xs={12} sm={6} md={4}>
+            <Box
+              p={4}
+              border="1px solid"
+              borderColor="divider"
+              borderRadius={2}
+              textAlign="center"
+              bgcolor="background.paper"
+              minHeight={180}
+              display="flex"
+              flexDirection="column"
+              justifyContent="center"
+            >
+              <Typography variant="h6" gutterBottom>
+                Payroll Report
+              </Typography>
+              <Button
+                variant="contained"
+                onClick={() => handleExport('payroll')}
+                disabled={isLoading('payroll') || (!month && !year)}
+                fullWidth
+                sx={{ mt: 2, py: 1.5 }}
+              >
+                {isLoading('payroll') ? (
+                  <>
+                    <CircularProgress size={20} sx={{ mr: 1 }} />
+                    Exporting...
+                  </>
+                ) : (
+                  'Export Excel'
+                )}
+              </Button>
+            </Box>
+          </Grid>
+        </Grid>
       </Box>
-
-      {/*=== Report Cards ===*/}
-      <Grid container spacing={3}>
-        {/* Employee Report */}
-        <Grid item xs={12} sm={6} md={4}>
-          <Box p={3} border="1px solid" borderRadius={2} textAlign="center">
-            <Typography variant="h6">Employee Report</Typography>
-            <Button
-              variant="contained"
-              sx={{ mt: 2 }}
-              onClick={() => handleExport('employees')}
-              fullWidth
-            >
-              Export Excel
-            </Button>
-          </Box>
-        </Grid>
-
-        {/* Attendance Report */}
-        <Grid item xs={12} sm={6} md={4}>
-          <Box p={3} border="1px solid" borderRadius={2} textAlign="center">
-            <Typography variant="h6">Attendance Report</Typography>
-            <Button
-              variant="contained"
-              sx={{ mt: 2 }}
-              onClick={() => handleExport('attendance')}
-              fullWidth
-              disabled={!month && !year}
-            >
-              Export Excel
-            </Button>
-          </Box>
-        </Grid>
-
-        {/* Payroll Report */}
-        <Grid item xs={12} sm={6} md={4}>
-          <Box p={3} border="1px solid" borderRadius={2} textAlign="center">
-            <Typography variant="h6">Payroll Report</Typography>
-            <Button
-              variant="contained"
-              sx={{ mt: 2 }}
-              onClick={() => handleExport('payroll')}
-              fullWidth
-              disabled={!month && !year}
-            >
-              Export Excel
-            </Button>
-          </Box>
-        </Grid>
-      </Grid>
-    </Box>
+    </LocalizationProvider>
   );
 };
 
