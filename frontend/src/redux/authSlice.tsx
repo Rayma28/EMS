@@ -14,7 +14,7 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    loginSuccess: (state, action: PayloadAction<{ token: string; role: string }>) => {
+    loginSuccess: (state, action: PayloadAction<{ token: string; role: string; employee_id?: number }>) => {
       state.token = action.payload.token;
       state.role = action.payload.role;
       localStorage.setItem('token', action.payload.token);
@@ -23,6 +23,7 @@ const authSlice = createSlice({
     logout: (state) => {
       state.token = null;
       state.role = null;
+      state.employee_id = null;
       localStorage.removeItem('token');
       localStorage.removeItem('role');
     },

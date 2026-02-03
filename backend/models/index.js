@@ -6,6 +6,7 @@ const Attendance = require('./attendance');
 const LeaveRequest = require('./leaveRequest');
 const Payroll = require('./payroll');
 const PerformanceReview = require('./performanceReview');
+const Request = require('./Request');  
 
 // Associations
 User.hasOne(Employee, { foreignKey: 'user_id' });
@@ -28,6 +29,38 @@ Employee.hasMany(PerformanceReview, { foreignKey: 'employee_id' });
 
 PerformanceReview.belongsTo(User, { foreignKey: 'reviewer_id', as: 'Reviewer' });
 
+Request.belongsTo(User, { 
+  foreignKey: 'requester_id', 
+  as: 'Requester' 
+});
+
+User.hasMany(Request, { 
+  foreignKey: 'requester_id', 
+  as: 'Requests' 
+});
+
+Request.belongsTo(User, { 
+  foreignKey: 'manager_approved_by', 
+  as: 'ManagerApprover' 
+});
+
+Request.belongsTo(User, { 
+  foreignKey: 'admin_approved_by', 
+  as: 'AdminApprover' 
+});
+
+Request.belongsTo(Employee, {
+  foreignKey: 'requester_id',
+  targetKey: 'user_id',
+  as: 'EmployeeRequester'
+});
+
+Employee.hasMany(Request, {
+  foreignKey: 'requester_id',
+  sourceKey: 'user_id',
+  as: 'EmployeeRequests'
+});
+
 module.exports = {
   sequelize,
   User,
@@ -37,4 +70,5 @@ module.exports = {
   LeaveRequest,
   Payroll,
   PerformanceReview,
+  Request,         
 };

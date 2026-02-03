@@ -19,7 +19,7 @@ type ReportType = 'employees' | 'attendance' | 'payroll';
 
 const Reports: React.FC = () => {
   const [month, setMonth] = useState<string>('');
-  const [year, setYear] = useState<string>('');   
+  const [year, setYear] = useState<string>('');
   const [loading, setLoading] = useState<ReportType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +38,8 @@ const Reports: React.FC = () => {
           setError('Please select month or year for Attendance/Payroll reports');
           return;
         }
-        if (month) params.month = month;
-        if (year) params.year = year;
+        if (month) params.month = month;     // e.g. "2025-03"
+        if (year) params.year = year;         // e.g. "2025"
       }
 
       const response = await api.get(`/reports/${type}`, {
@@ -71,6 +71,10 @@ const Reports: React.FC = () => {
 
   const isLoading = (type: ReportType) => loading === type;
 
+  // Determine which filter is active
+  const hasMonth = month !== '';
+  const hasYear = year !== '';
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box sx={{ p: 3 }}>
@@ -93,11 +97,11 @@ const Reports: React.FC = () => {
             Filter (for Attendance & Payroll Reports)
           </Typography>
 
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              gap: 3, 
-              flexWrap: 'wrap', 
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 3,
+              flexWrap: 'wrap',
               alignItems: 'flex-end',
               '& .MuiFormControl-root': {
                 marginTop: 0,
@@ -112,28 +116,30 @@ const Reports: React.FC = () => {
               onChange={(e) => {
                 const newMonth = e.target.value;
                 setMonth(newMonth);
-                if (newMonth) setYear('');
+                if (newMonth) setYear(''); // clear year when month is selected
               }}
               InputLabelProps={{ shrink: true }}
               sx={{ width: 200 }}
+              disabled={hasYear}           // ← disabled when year is selected
             />
 
             {/* Year Picker */}
             <DatePicker
               label="Year"
-              views={['year']} 
+              views={['year']}
               value={year ? dayjs(`${year}-01-01`) : null}
               onChange={(newValue) => {
                 if (newValue) {
                   const selectedYear = newValue.year().toString();
                   setYear(selectedYear);
-                  setMonth(''); 
+                  setMonth(''); // clear month when year is selected
                 } else {
                   setYear('');
                 }
               }}
               minDate={dayjs('2000-01-01')}
               maxDate={dayjs(`${currentYear + 5}-12-31`)}
+              disabled={hasMonth}           // ← disabled when month is selected
               slotProps={{
                 textField: {
                   sx: { width: 200 },
@@ -141,6 +147,21 @@ const Reports: React.FC = () => {
               }}
             />
           </Box>
+
+          {(hasMonth || hasYear) && (
+            <Box sx={{ mt: 2 }}>
+              <Button
+                size="small"
+                color="inherit"
+                onClick={() => {
+                  setMonth('');
+                  setYear('');
+                }}
+              >
+                Clear filter
+              </Button>
+            </Box>
+          )}
         </Box>
 
         {error && (
@@ -150,7 +171,7 @@ const Reports: React.FC = () => {
         )}
 
         <Grid container spacing={3}>
-          {/* Employee Report no filter needed */}
+          {/* Employee Report – no filter needed */}
           <Grid item xs={12} sm={6} md={4}>
             <Box
               p={4}

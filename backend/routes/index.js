@@ -8,6 +8,7 @@ const payrollRoutes = require('./payrollRoutes');
 const performanceRoutes = require('./performanceRoutes');
 const reportRoutes = require('./reportRoutes');
 const userRoutes = require('./userRoutes');
+const requestRoutes = require('./requestRoutes');
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -19,5 +20,6 @@ router.use('/payroll', payrollRoutes);
 router.use('/performance', performanceRoutes);
 router.use('/reports', reportRoutes);
 router.use('/users', userRoutes);   
+router.use('/requests', requestRoutes);
 
 module.exports = router;    

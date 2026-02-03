@@ -25,10 +25,12 @@ import {
   Payment,
   StarRate,
   Assessment,
+  Assignment,
   Person,
   Settings,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
+import Requests from '../../pages/Requests.tsx';
 
 const iconMap: Record<string, React.ReactElement> = {
   Dashboard: <Dashboard />,
@@ -39,6 +41,7 @@ const iconMap: Record<string, React.ReactElement> = {
   Payroll: <Payment />,
   Performance: <StarRate />,
   Reports: <Assessment />,
+  Requests: <Assignment />,
   Users: <People />,
   Profile: <Person />,
   Settings: <Settings />,
@@ -91,7 +94,7 @@ const Sidebar: React.FC<SidebarProps> = ({ mobileOpen = false, onClose }) => {
     >
       {/* Main menu items */}
       <List sx={{ flexGrow: 1, px: 1, pt: 2 }}>
-        {menuItems.map((text) => (
+        {menuItems.map((text: string) => (
           <ListItem key={text} disablePadding>
             <ListItemButton
               selected={isActive(text)}

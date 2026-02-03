@@ -28,18 +28,21 @@ import DailyAttendance from './pages/DailyAttendance.tsx';
 import UserManagement from './pages/UserManagement.tsx';
 import PerformanceManagement from './pages/PerformanceManagement.tsx';
 import Reports from './pages/Reports.tsx'
+import RequestManagement from './pages/Requests.tsx';
 
 // Layout
 import Layout from './components/Layout/Layout.tsx';
 import { Report } from '@mui/icons-material';
+import Requests from './pages/Requests.tsx';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
   roles?: string[];
+  employee_id?: null | number;
 }
 
-const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, roles = [] }) => {
-  const { token, role } = useSelector((state: RootState) => state.auth);
+const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, roles = [], employee_id = null }) => {
+  const { token, role} = useSelector((state: RootState) => state.auth);
 
   if (!token) {
     return <Navigate to="/login" replace />;
@@ -48,6 +51,10 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, roles = [] }) => 
   if (roles.length > 0 && !roles.includes(role || '')) {
     return <Unauthorized />;
   }
+  
+  //if (employee_id === null) {
+    //return <Unauthorized />;
+  //}
 
   return <Layout>{children}</Layout>;
 };
@@ -98,6 +105,11 @@ const AppContent: React.FC = () => {
         <Route
           path="/reports"
           element={<PrivateRoute roles={['Admin', 'HR', 'Superuser']}><Reports /></PrivateRoute>}
+        />
+
+        <Route
+          path="/requests"
+          element={<PrivateRoute roles={['Employee', 'Manager', 'Admin', 'Superuser']}><Requests /></PrivateRoute>}
         />
 
         <Route path="/unauthorized" element={<Unauthorized />} />

@@ -32,7 +32,6 @@ const Login: React.FC = () => {
   const location = useLocation();
   const { token } = useSelector((state: RootState) => state.auth);
 
-  // Check for session expired on mount
   useEffect(() => {
     if (token) {
       navigate('/', { replace: true });
