@@ -24,23 +24,24 @@ const getRequests = async (req, res) => {
         ],
       };
     }
+    // Admins / Superusers see everything (no where clause)
 
     const requests = await Request.findAll({
       where,
       include: [
-      {
-        model: User,
-        as: 'Requester',
-        attributes: ['id', 'username', 'email', 'role'],
-        required: false, 
-        include: [
-          {
-          model: Employee,
-          attributes: ['first_name', 'last_name'],
-          required: false, 
-          },
-        ],
-      },
+        {
+          model: User,
+          as: 'Requester',
+          attributes: ['id', 'username', 'email', 'role'],
+          required: false,
+          include: [
+            {
+              model: Employee,
+              attributes: ['first_name', 'last_name'],
+              required: false,
+            },
+          ],
+        },
         {
           model: User,
           as: 'ManagerApprover',
@@ -55,7 +56,11 @@ const getRequests = async (req, res) => {
       order: [['created_at', 'DESC']],
     });
 
-    res.json(requests);
+    // ← Important change: return structured response
+    res.json({
+      requests,
+      currentUserId: currentUser.id,
+    });
   } catch (err) {
     console.error('getRequests error:', err);
     res.status(500).json({ message: 'Failed to fetch requests', error: err.message });
@@ -90,7 +95,6 @@ const managerApprove = async (req, res) => {
     });
     if (!request) return res.status(404).json({ message: 'Request not found' });
 
-    // Prevent manager from approving own request
     if (request.requester_id === req.user.id) {
       return res.status(403).json({ message: 'Cannot approve your own request' });
     }
@@ -122,7 +126,6 @@ const managerReject = async (req, res) => {
     });
     if (!request) return res.status(404).json({ message: 'Request not found' });
 
-    // Prevent manager from rejecting own request
     if (request.requester_id === req.user.id) {
       return res.status(403).json({ message: 'Cannot reject your own request' });
     }
@@ -145,7 +148,6 @@ const managerReject = async (req, res) => {
   }
 };
 
-// Admin approve & reject remain the same (admin can approve/reject anything)
 const adminApprove = async (req, res) => {
   try {
     const request = await Request.findByPk(req.params.id);
@@ -201,13 +203,11 @@ const deleteRequest = async (req, res) => {
     const isCreator = request.requester_id === currentUser.id;
     const isAdmin   = currentUser.role === 'Admin' || currentUser.role === 'Superuser';
 
-    // Admin/Superuser can always delete
     if (isAdmin) {
       await request.destroy();
       return res.json({ message: 'Request deleted successfully' });
     }
 
-    // Employee & Manager restrictions
     const isEmployee = currentUser.role === 'Employee';
     const isManager  = currentUser.role === 'Manager';
 
@@ -215,7 +215,6 @@ const deleteRequest = async (req, res) => {
       return res.status(403).json({ message: 'You are not authorized to delete this request' });
     }
 
-    // Status restrictions for Employee & Manager
     const isPendingManager = request.status === 'Pending Manager';
     const isPendingAdmin   = request.status === 'Pending Admin';
 
@@ -252,7 +251,6 @@ const updateRequest = async (req, res) => {
     const isManager = currentUser.role === 'Manager';
     const isAdmin  = currentUser.role === 'Admin' || currentUser.role === 'Superuser';
 
-    // Who can edit
     const canEdit =
       (isCreator && (currentUser.role === 'Employee' || currentUser.role === 'Manager')) ||
       isAdmin;
@@ -261,7 +259,6 @@ const updateRequest = async (req, res) => {
       return res.status(403).json({ message: 'You are not authorized to edit this request' });
     }
 
-    // Status restrictions
     const isPendingManager = request.status === 'Pending Manager';
     const isPendingAdmin   = request.status === 'Pending Admin';
 
@@ -294,6 +291,6 @@ module.exports = {
   managerReject,
   adminApprove,
   adminReject,
-  deleteRequest,   
-  updateRequest,     
+  deleteRequest,
+  updateRequest,
 };
