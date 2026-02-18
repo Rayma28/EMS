@@ -9,6 +9,7 @@ const performanceRoutes = require('./performanceRoutes');
 const reportRoutes = require('./reportRoutes');
 const userRoutes = require('./userRoutes');
 const requestRoutes = require('./requestRoutes');
+const profileRoutes = require('./profileRoutes');
 const router = express.Router();
 
 router.use('/auth', authRoutes);
@@ -21,5 +22,6 @@ router.use('/performance', performanceRoutes);
 router.use('/reports', reportRoutes);
 router.use('/users', userRoutes);   
 router.use('/requests', requestRoutes);
+router.use('/profile', profileRoutes); 
 
 module.exports = router;    

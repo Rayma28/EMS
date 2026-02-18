@@ -30,7 +30,6 @@ import {
   Settings,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
-import Requests from '../../pages/Requests.tsx';
 
 const iconMap: Record<string, React.ReactElement> = {
   Dashboard: <Dashboard />,
@@ -45,6 +44,7 @@ const iconMap: Record<string, React.ReactElement> = {
   Users: <People />,
   Profile: <Person />,
   Settings: <Settings />,
+  ProfileRequests: <Assignment />,
 };
 
 interface SidebarProps {

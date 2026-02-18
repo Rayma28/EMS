@@ -28,12 +28,12 @@ import DailyAttendance from './pages/DailyAttendance.tsx';
 import UserManagement from './pages/UserManagement.tsx';
 import PerformanceManagement from './pages/PerformanceManagement.tsx';
 import Reports from './pages/Reports.tsx'
-import RequestManagement from './pages/Requests.tsx';
-
-// Layout
-import Layout from './components/Layout/Layout.tsx';
-import { Report } from '@mui/icons-material';
+import Profile from './pages/Profile.tsx';
+import Settings from './pages/Settings.tsx';
 import Requests from './pages/Requests.tsx';
+import Layout from './components/Layout/Layout.tsx';
+import ProfileEditTokenPage from './pages/ProfileEditTokenPage.tsx';
+import HRProfileRequestsPage from './pages/HRProfileRequestsPage.tsx';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -51,10 +51,6 @@ const PrivateRoute: React.FC<PrivateRouteProps> = ({ children, roles = [], emplo
   if (roles.length > 0 && !roles.includes(role || '')) {
     return <Unauthorized />;
   }
-  
-  //if (employee_id === null) {
-    //return <Unauthorized />;
-  //}
 
   return <Layout>{children}</Layout>;
 };
@@ -112,9 +108,35 @@ const AppContent: React.FC = () => {
           element={<PrivateRoute roles={['Employee', 'Manager', 'Admin', 'Superuser']}><Requests /></PrivateRoute>}
         />
 
-        <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route
+          path="/profile"
+          element={<PrivateRoute roles={['Employee', 'HR', 'Manager', 'Admin', 'Superuser']}><Profile /></PrivateRoute>}
+        />
 
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route
+          path="/Profile Requests"
+          element={<PrivateRoute roles={['HR']}><HRProfileRequestsPage /></PrivateRoute>}
+        />
+
+        <Route 
+          path="/profile-edit/:token" 
+          element={<PrivateRoute roles={['Employee', 'HR', 'Manager', 'Admin', 'Superuser']}><ProfileEditTokenPage /></PrivateRoute>} 
+        />
+
+        <Route
+          path="/settings"
+          element={<PrivateRoute roles={['Admin', 'Superuser']}><Settings /></PrivateRoute>}
+        />
+
+        <Route 
+          path="/unauthorized" 
+          element={<Unauthorized />} 
+        />
+
+        <Route 
+          path="*" 
+          element={<Navigate to="/" replace />} 
+        />
       </Routes>
     </Router>
   );

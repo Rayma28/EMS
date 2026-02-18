@@ -8,7 +8,7 @@ router.get('/', authenticate, authorize(['Admin', 'HR', 'Manager', 'Superuser'])
 router.get('/current', authenticate, authorize(['Admin', 'HR', 'Superuser', 'Employee', 'Manager']), getCurrentEmployee);
 router.get('/:id', authenticate, authorize(['Admin', 'HR', 'Superuser']), getEmployeeById);
 router.post('/', authenticate, authorize(['Admin', 'HR', 'Superuser']), addEmployee); 
-router.put('/:id', authenticate, authorize(['Admin', 'HR', 'Superuser']), updateEmployee); 
+router.put('/:id', authenticate, authorize(['Admin', 'HR', 'Superuser', 'Employee', 'Manager']), updateEmployee); 
 router.delete('/:id', authenticate, authorize(['Admin', 'HR', 'Superuser']), deleteEmployee);
 
 module.exports = router;

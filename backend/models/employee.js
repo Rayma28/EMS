@@ -70,9 +70,21 @@ const Employee = sequelize.define('Employee', {
     allowNull: true,
   },
   next_increment: {
-  type: DataTypes.DATEONLY,
-  allowNull: true,
-  comment: 'Next salary increment date',
+    type: DataTypes.DATEONLY,
+    allowNull: true,
+    comment: 'Next salary increment date',
+  },
+  pan_number: {
+    type: DataTypes.STRING(10),
+    allowNull: true,
+  },
+  aadhaar_number: {
+    type: DataTypes.STRING(14),
+    allowNull: true,
+  },
+  profile_picture: {
+    type: DataTypes.STRING,
+    allowNull: true,
   },
 }, {
   tableName: 'employees',

@@ -91,9 +91,8 @@ const Requests: React.FC = () => {
     items: true,
     description: true,
     status: true,
-    editDelete: !isAdmin && !isAdmin,     
-    approveReject: true,                  
-    actions: isAdmin,                    
+    editDelete: !isAdmin,
+    approveReject: true,
   });
 
   useEffect(() => {
@@ -116,8 +115,8 @@ const Requests: React.FC = () => {
       setCurrentUserId(data.currentUserId || null);
 
       if (isManager && data.currentUserId) {
-        const mine = valid.filter((r: RequestRow) => r.requester_id === data.currentUserId);
-        const team = valid.filter((r: RequestRow) => r.requester_id !== data.currentUserId);
+        const mine = valid.filter((r) => r.requester_id === data.currentUserId);
+        const team = valid.filter((r) => r.requester_id !== data.currentUserId);
         setMyRequests(mine);
         setTeamRequests(team);
       }
@@ -131,7 +130,6 @@ const Requests: React.FC = () => {
     }
   };
 
-  // Base columns shared across views
   const baseColumns: GridColDef[] = [
     {
       field: 'requesterName',
@@ -193,7 +191,6 @@ const Requests: React.FC = () => {
     },
   ];
 
-  // Action columns
   const approveRejectColumn: GridColDef = {
     field: 'approveReject',
     headerName: 'Approve / Reject',
@@ -204,13 +201,11 @@ const Requests: React.FC = () => {
       if (!r) return null;
 
       const isPendingManager = r.status === 'Pending Manager';
-      const isPendingAdmin   = r.status === 'Pending Admin';
-      const isCreator        = currentUserId ? r.requester_id === currentUserId : false;
+      const isPendingAdmin = r.status === 'Pending Admin';
+      const isCreator = currentUserId ? r.requester_id === currentUserId : false;
 
-      // Manager approves/rejects only team requests (not own)
       const showManagerActions = isManager && isPendingManager && !isCreator;
-      // Admin approves/rejects Pending Admin requests
-      const showAdminActions   = isAdmin && isPendingAdmin;
+      const showAdminActions = isAdmin && isPendingAdmin;
 
       if (!showManagerActions && !showAdminActions) return null;
 
@@ -246,12 +241,11 @@ const Requests: React.FC = () => {
       const r = params.row;
       if (!r || !currentUserId) return null;
 
-      // Admin never sees edit/delete
       if (isAdmin) return null;
 
       const isPendingManager = r.status === 'Pending Manager';
-      const isPendingAdmin   = r.status === 'Pending Admin';
-      const isCreator        = r.requester_id === currentUserId;
+      const isPendingAdmin = r.status === 'Pending Admin';
+      const isCreator = r.requester_id === currentUserId;
 
       let canEdit = false;
       let canDelete = false;
@@ -285,24 +279,10 @@ const Requests: React.FC = () => {
     },
   };
 
-  const adminDeleteColumn: GridColDef = {
-    field: 'actions',
-    headerName: 'Actions',
-    width: 100,
-    sortable: false,
-    renderCell: (params) => (
-      <Tooltip title="Delete">
-        <IconButton color="error" onClick={() => handleDelete(params.row.request_id)}>
-          <DeleteIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    ),
-  };
-
-  // Column configurations per view
+  // Column sets
   const managerMyColumns: GridColDef[] = [...baseColumns, editDeleteColumn];
   const managerTeamColumns: GridColDef[] = [...baseColumns, approveRejectColumn];
-  const adminColumns: GridColDef[] = [...baseColumns, approveRejectColumn, adminDeleteColumn];
+  const adminColumns: GridColDef[] = [...baseColumns, approveRejectColumn]; // No delete column
   const employeeColumns: GridColDef[] = [...baseColumns, editDeleteColumn];
 
   const renderRequestGrid = (rows: RequestRow[], title: string, columns: GridColDef[]) => (
@@ -325,7 +305,7 @@ const Requests: React.FC = () => {
             <CustomToolbar
               columnVisibilityModel={columnVisibilityModel}
               setColumnVisibilityModel={setColumnVisibilityModel}
-              optionalColumns={['rejectionReason', 'editDelete', 'approveReject', 'actions']}
+              optionalColumns={['rejectionReason', 'editDelete', 'approveReject']}
             />
           ),
         }}
@@ -461,7 +441,7 @@ const Requests: React.FC = () => {
       ) : isManager ? (
         <>
           {renderRequestGrid(myRequests, "My Requests", managerMyColumns)}
-          {renderRequestGrid(teamRequests, "Requests to Approve", managerTeamColumns)}
+          {renderRequestGrid(teamRequests, "Team Requests to Approve", managerTeamColumns)}
         </>
       ) : isAdmin ? (
         renderRequestGrid(allRequests, "All Requests", adminColumns)

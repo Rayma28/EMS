@@ -3,11 +3,13 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 interface AuthState {
   token: string | null;
   role: string | null;
+  employee_id: number | null;
 }
 
 const initialState: AuthState = {
   token: localStorage.getItem('token'),
   role: localStorage.getItem('role'),
+  employee_id: null,
 };
 
 const authSlice = createSlice({

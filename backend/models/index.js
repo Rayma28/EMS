@@ -7,6 +7,7 @@ const LeaveRequest = require('./leaveRequest');
 const Payroll = require('./payroll');
 const PerformanceReview = require('./performanceReview');
 const Request = require('./Request');  
+const ProfileEditRequest = require('./ProfileEditRequest');
 
 // Associations
 User.hasOne(Employee, { foreignKey: 'user_id' });
@@ -28,6 +29,9 @@ PerformanceReview.belongsTo(Employee, { foreignKey: 'employee_id' });
 Employee.hasMany(PerformanceReview, { foreignKey: 'employee_id' });
 
 PerformanceReview.belongsTo(User, { foreignKey: 'reviewer_id', as: 'Reviewer' });
+
+ProfileEditRequest.belongsTo(Employee, { foreignKey: 'employee_id' });
+Employee.hasMany(ProfileEditRequest, { foreignKey: 'employee_id' });
 
 Request.belongsTo(User, { 
   foreignKey: 'requester_id', 
@@ -70,5 +74,6 @@ module.exports = {
   LeaveRequest,
   Payroll,
   PerformanceReview,
-  Request,         
+  Request,     
+  ProfileEditRequest,    
 };
