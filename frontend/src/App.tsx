@@ -33,7 +33,7 @@ import Settings from './pages/Settings.tsx';
 import Requests from './pages/Requests.tsx';
 import Layout from './components/Layout/Layout.tsx';
 import ProfileEditTokenPage from './pages/ProfileEditTokenPage.tsx';
-import HRProfileRequestsPage from './pages/HRProfileRequestsPage.tsx';
+import HRProfileRequestsPage from './pages/ProfileRequestsPage.tsx';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
@@ -115,12 +115,12 @@ const AppContent: React.FC = () => {
 
         <Route
           path="/Profile Requests"
-          element={<PrivateRoute roles={['HR']}><HRProfileRequestsPage /></PrivateRoute>}
+          element={<PrivateRoute roles={['HR', 'Admin']}><HRProfileRequestsPage /></PrivateRoute>}
         />
 
         <Route 
-          path="/profile-edit/:token" 
-          element={<PrivateRoute roles={['Employee', 'HR', 'Manager', 'Admin', 'Superuser']}><ProfileEditTokenPage /></PrivateRoute>} 
+          path="/profile/profile/edit/:token" 
+          element={<PrivateRoute roles={['Employee', 'HR', 'Manager', 'Admin']}><ProfileEditTokenPage /></PrivateRoute>} 
         />
 
         <Route

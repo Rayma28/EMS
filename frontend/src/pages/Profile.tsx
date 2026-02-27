@@ -38,8 +38,8 @@ import {
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext.tsx';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3002';
-const STATIC_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, ''); // e.g. http://localhost:5002
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5002';
+const STATIC_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
 
 interface Profile {
   employee_id: number;
@@ -68,10 +68,12 @@ const ProfilePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  // Request modal state
   const [openRequestModal, setOpenRequestModal] = useState(false);
   const [requestData, setRequestData] = useState<Partial<Profile>>({});
   const [requestLoading, setRequestLoading] = useState(false);
+
+  // NEW: track if user has a pending profile update request
+  const [hasPendingRequest, setHasPendingRequest] = useState(false);
 
   useEffect(() => {
     loadProfile();
@@ -80,10 +82,12 @@ const ProfilePage: React.FC = () => {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/profile');
-      const data = res.data || {};
 
-      // Normalize paths → keep only from "uploads/" onward
+      // 1. Load profile data
+      const profileRes = await api.get('/profile');
+      const data = profileRes.data || {};
+
+      // Normalize document & picture paths
       let documents: string[] = [];
       if (Array.isArray(data.documents)) {
         documents = data.documents.map((p: string) =>
@@ -122,6 +126,16 @@ const ProfilePage: React.FC = () => {
       setProfile(formatted);
       setEditProfile({});
       setRequestData({});
+
+      // 2. Check if there is a pending request
+      try {
+        const statusRes = await api.get('/profile/profile/request-status');
+        setHasPendingRequest(statusRes.data?.hasPending === true);
+      } catch (statusErr: any) {
+        // If endpoint doesn't exist yet or fails → assume no pending request
+        console.warn('Could not fetch request status:', statusErr);
+        setHasPendingRequest(false);
+      }
     } catch (err: any) {
       showNotification(
         err.response?.data?.message || 'Failed to load profile',
@@ -161,7 +175,7 @@ const ProfilePage: React.FC = () => {
     }
   };
 
-  // ─── Request sensitive fields (read-only confirmation) ───
+  // ─── Request sensitive fields ───
   const handleOpenRequestModal = () => {
     if (profile) {
       setRequestData({
@@ -194,6 +208,9 @@ const ProfilePage: React.FC = () => {
       );
       setOpenRequestModal(false);
       setRequestData({});
+
+      // Mark as pending immediately after submission
+      setHasPendingRequest(true);
     } catch (err: any) {
       showNotification(
         err.response?.data?.message || 'Failed to send request. Please try again.',
@@ -299,9 +316,13 @@ const ProfilePage: React.FC = () => {
             variant="outlined"
             startIcon={<EditIcon />}
             onClick={handleOpenRequestModal}
+            disabled={hasPendingRequest || requestLoading}
           >
-            Request Profile Update
+            {hasPendingRequest
+              ? 'Pending HR Review'
+              : 'Request Profile Update'}
           </Button>
+
           {!isEditingNonSensitive ? (
             <Button
               variant="outlined"
@@ -723,7 +744,7 @@ const ProfilePage: React.FC = () => {
             disabled={requestLoading}
             onClick={handleSubmitRequest}
           >
-            {requestLoading ? 'Sending...' : 'Send Request to HR'}
+            {requestLoading ? 'Sending...' : 'Send Request'}
           </Button>
         </DialogActions>
       </Dialog>

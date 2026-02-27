@@ -7,7 +7,7 @@ const LeaveRequest = require('./leaveRequest');
 const Payroll = require('./payroll');
 const PerformanceReview = require('./performanceReview');
 const Request = require('./Request');  
-const ProfileEditRequest = require('./ProfileEditRequest');
+const ProfileEditRequest = require('./ProfileEditRequest')(sequelize);
 
 // Associations
 User.hasOne(Employee, { foreignKey: 'user_id' });
@@ -29,9 +29,6 @@ PerformanceReview.belongsTo(Employee, { foreignKey: 'employee_id' });
 Employee.hasMany(PerformanceReview, { foreignKey: 'employee_id' });
 
 PerformanceReview.belongsTo(User, { foreignKey: 'reviewer_id', as: 'Reviewer' });
-
-ProfileEditRequest.belongsTo(Employee, { foreignKey: 'employee_id' });
-Employee.hasMany(ProfileEditRequest, { foreignKey: 'employee_id' });
 
 Request.belongsTo(User, { 
   foreignKey: 'requester_id', 
@@ -63,6 +60,16 @@ Employee.hasMany(Request, {
   foreignKey: 'requester_id',
   sourceKey: 'user_id',
   as: 'EmployeeRequests'
+});
+
+ProfileEditRequest.belongsTo(User, {
+  foreignKey: 'requested_by',
+  as: 'requester',
+});
+
+ProfileEditRequest.belongsTo(Employee, {
+  foreignKey: 'employee_id',   
+  as: 'employee',              
 });
 
 module.exports = {
