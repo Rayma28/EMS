@@ -1,4 +1,4 @@
-// models/ProfileUpdateRequest.js
+// models/ProfileEditRequest.js
 const { DataTypes } = require('sequelize');
 
 module.exports = (sequelize) => {
@@ -51,6 +51,27 @@ module.exports = (sequelize) => {
     token_expires_at: {
       type: DataTypes.DATE,
       allowNull: true,
+    },
+    action_token_approve: {
+      type: DataTypes.STRING(512),
+      allowNull: true,
+      comment: 'JWT token for one-click approve from email',
+    },
+    action_token_reject: {
+      type: DataTypes.STRING(512),
+      allowNull: true,
+      comment: 'JWT token for one-click reject from email',
+    },
+    action_token_used: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+      allowNull: false,
+      comment: 'Whether any action token (approve or reject) has been used',
+    },
+    action_token_expires_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Expiration time for action tokens (same for both approve & reject)',
     },
     created_at: DataTypes.DATE,
     updated_at: DataTypes.DATE,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import api from '../services/api';
 import { useNotification } from '../context/NotificationContext.tsx';
+import dayjs from 'dayjs';
 
 const ProfileEditTokenPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -30,6 +31,16 @@ const ProfileEditTokenPage: React.FC = () => {
   const [changes, setChanges] = useState<Record<string, string | null>>({});
   const [success, setSuccess] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+
+  // Validation states
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const currentYear = new Date().getFullYear();
+  const MIN_AGE = 18;
+  const MAX_AGE = 65;
+
+  const minDob = useMemo(() => `${currentYear - MAX_AGE}-01-01`, [currentYear]);
+  const maxDob = useMemo(() => `${currentYear - MIN_AGE}-12-31`, [currentYear]);
 
   useEffect(() => {
     if (!token) {
@@ -62,9 +73,142 @@ const ProfileEditTokenPage: React.FC = () => {
     fetchInitialData();
   }, [token]);
 
+  // Real-time input sanitization + basic live validation
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setChanges((prev) => ({ ...prev, [name]: value || null }));
+    let sanitized = value;
+
+    // Real-time cleaning
+    if (name === 'first_name' || name === 'last_name') {
+      sanitized = value.replace(/[^A-Za-z]/g, '');
+    } else if (name === 'phone') {
+      sanitized = value.replace(/\D/g, '').slice(0, 10);
+    } else if (name === 'pan_number') {
+      sanitized = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10);
+    } else if (name === 'aadhaar_number') {
+      sanitized = value.replace(/\D/g, '').slice(0, 12);
+    } else if (name === 'email') {
+      // Allow typical email characters — no aggressive sanitization here
+      sanitized = value.trim();
+    }
+
+    setChanges((prev) => ({ ...prev, [name]: sanitized || null }));
+
+    // Live validation feedback
+    const newErrors = { ...fieldErrors };
+
+    if (name === 'first_name' || name === 'last_name') {
+      if (sanitized.length === 0) {
+        newErrors[name] = 'This field is required';
+      } else if (sanitized.length < 2) {
+        newErrors[name] = 'Minimum 2 characters';
+      } else {
+        delete newErrors[name];
+      }
+    }
+
+    if (name === 'email') {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!sanitized) {
+        newErrors[name] = 'Email is required';
+      } else if (!emailRegex.test(sanitized)) {
+        newErrors[name] = 'Please enter a valid email address';
+      } else {
+        delete newErrors[name];
+      }
+    }
+
+    if (name === 'phone' && sanitized.length > 0 && sanitized.length !== 10) {
+      newErrors[name] = 'Phone must be 10 digits';
+    } else if (name === 'phone') {
+      delete newErrors[name];
+    }
+
+    if (name === 'dob' && sanitized) {
+      const dobYear = Number(sanitized.split('-')[0]);
+      if (dobYear < currentYear - MAX_AGE || dobYear > currentYear - MIN_AGE) {
+        newErrors[name] = `Age must be between ${MIN_AGE} and ${MAX_AGE} years`;
+      } else {
+        delete newErrors[name];
+      }
+    }
+
+    if (name === 'pan_number' && sanitized.length > 0 && sanitized.length !== 10) {
+      newErrors[name] = 'PAN must be 10 characters';
+    } else if (name === 'pan_number') {
+      delete newErrors[name];
+    }
+
+    if (name === 'aadhaar_number' && sanitized.length > 0 && sanitized.length !== 12) {
+      newErrors[name] = 'Aadhaar must be 12 digits';
+    } else if (name === 'aadhaar_number') {
+      delete newErrors[name];
+    }
+
+    setFieldErrors(newErrors);
+  };
+
+  const validateForm = (): boolean => {
+    const errors: Record<string, string> = {};
+
+    // Required fields
+    if (!changes.first_name?.trim()) errors.first_name = 'First Name is required';
+    if (!changes.last_name?.trim()) errors.last_name = 'Last Name is required';
+    if (!changes.email?.trim()) errors.email = 'Email is required';
+
+    // Email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (changes.email && !emailRegex.test(changes.email)) {
+      errors.email = 'Invalid email format';
+    }
+
+    // Names
+    const nameRegex = /^[A-Za-z]+$/;
+    if (changes.first_name && !nameRegex.test(changes.first_name)) {
+      errors.first_name = 'Only alphabets allowed';
+    }
+    if (changes.last_name && !nameRegex.test(changes.last_name)) {
+      errors.last_name = 'Only alphabets allowed';
+    }
+
+    // Phone (optional but if filled → must be valid)
+    if (changes.phone && (changes.phone.length !== 10 || !/^\d{10}$/.test(changes.phone))) {
+      errors.phone = 'Phone must be exactly 10 digits';
+    }
+
+    // DOB
+    if (changes.dob) {
+      const dobDate = dayjs(changes.dob);
+      const age = dayjs().diff(dobDate, 'year');
+      if (age < MIN_AGE || age > MAX_AGE) {
+        errors.dob = `Age must be between ${MIN_AGE} and ${MAX_AGE} years`;
+      }
+    }
+
+    // PAN (if provided)
+    if (changes.pan_number && changes.pan_number.length !== 10) {
+      errors.pan_number = 'PAN must be 10 characters';
+    }
+
+    // Aadhaar (if provided)
+    if (changes.aadhaar_number && changes.aadhaar_number.length !== 12) {
+      errors.aadhaar_number = 'Aadhaar must be 12 digits';
+    }
+
+    setFieldErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      showNotification('Please correct the errors in the form', 'error');
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleSubmitClick = () => {
+    if (validateForm()) {
+      setConfirmOpen(true);
+    }
   };
 
   const handleSubmit = async () => {
@@ -80,7 +224,6 @@ const ProfileEditTokenPage: React.FC = () => {
           'Changes submitted successfully! Waiting for final HR approval.',
           'success'
         );
-        // Give user more time to read the message
         setTimeout(() => navigate('/profile'), 4500);
       } else {
         setError(res.data.message || 'Failed to submit changes');
@@ -167,22 +310,16 @@ const ProfileEditTokenPage: React.FC = () => {
               <Grid item xs={12} sm={6} key={field}>
                 <TextField
                   fullWidth
+                  required={field === 'first_name' || field === 'last_name' || field === 'email'}
                   label={
-                    field === 'first_name'
-                      ? 'First Name'
-                      : field === 'last_name'
-                      ? 'Last Name'
-                      : field === 'email'
-                      ? 'Email Address'
-                      : field === 'phone'
-                      ? 'Phone Number'
-                      : field === 'dob'
-                      ? 'Date of Birth'
-                      : field === 'gender'
-                      ? 'Gender'
-                      : field === 'pan_number'
-                      ? 'PAN Number'
-                      : 'Aadhaar Number'
+                    field === 'first_name' ? 'First Name' :
+                    field === 'last_name' ? 'Last Name' :
+                    field === 'email' ? 'Email Address' :
+                    field === 'phone' ? 'Phone Number' :
+                    field === 'dob' ? 'Date of Birth' :
+                    field === 'gender' ? 'Gender' :
+                    field === 'pan_number' ? 'PAN Number' :
+                    'Aadhaar Number'
                   }
                   name={field}
                   value={changes[field] ?? currentData[field] ?? ''}
@@ -190,14 +327,19 @@ const ProfileEditTokenPage: React.FC = () => {
                   variant="outlined"
                   type={field === 'dob' ? 'date' : 'text'}
                   InputLabelProps={field === 'dob' ? { shrink: true } : undefined}
+                  error={!!fieldErrors[field]}
                   helperText={
-                    field === 'email'
-                      ? 'Email changes are highly sensitive — contact HR if needed'
-                      : field === 'aadhaar_number' || field === 'pan_number'
-                      ? 'Ensure accuracy — changes require final HR approval'
-                      : undefined
+                    fieldErrors[field] ||
+                    (field === 'email' ? 'This will be your new login email — use carefully' :
+                     field === 'aadhaar_number' || field === 'pan_number'
+                       ? 'Ensure accuracy — changes require final HR approval'
+                       : field === 'phone' ? '10-digit mobile number'
+                       : undefined)
                   }
                   disabled={submitting}
+                  InputProps={{
+                    ...(field === 'dob' ? { inputProps: { min: minDob, max: maxDob } } : {}),
+                  }}
                 />
               </Grid>
             ))}
@@ -217,7 +359,7 @@ const ProfileEditTokenPage: React.FC = () => {
               color="primary"
               size="large"
               disabled={submitting}
-              onClick={() => setConfirmOpen(true)}
+              onClick={handleSubmitClick}
             >
               {submitting ? 'Submitting...' : 'Submit for Final Approval'}
             </Button>

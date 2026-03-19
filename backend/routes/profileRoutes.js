@@ -11,6 +11,7 @@ const {
   submitEditedProfile,
   finalDecision,
   getRequestStatus,
+  handleQuickAction,
 } = require('../controllers/profileRequestController');
 const { authenticate, authorize } = require('../middleware/auth');
 
@@ -23,10 +24,10 @@ router.post('/profile-request', authenticate, authorize(['Employee', 'HR', 'Mana
 
 router.get('/profile/request-status', authenticate, authorize(['Employee', 'HR', 'Manager', 'Admin']), getRequestStatus);
 
-// HR first review (changed to PUT to match frontend)
+// HR first review 
 router.put('/profile-request/:requestId/initial-review', authenticate, authorize(['HR', 'Admin']), reviewInitialRequest);
 
-// Employee submits edit via token (no auth, token-based)
+// Employee submits edit via token 
 router.put('/profile/edit/:token', submitEditedProfile);  
 
 // HR final decision (changed to PUT)
@@ -79,7 +80,15 @@ router.get('/profile-requests/view', authenticate, authorize(['HR', 'Admin']), a
         {
           model: Employee,
           as: 'employee',
-          attributes: ['first_name', 'last_name'],
+          attributes: [
+          'first_name',
+          'last_name',
+          'phone',
+          'dob',
+          'gender',
+          'pan_number',
+          'aadhaar_number',
+          ],
           required: true,
           include: [
             {
@@ -100,6 +109,16 @@ router.get('/profile-requests/view', authenticate, authorize(['HR', 'Admin']), a
         : 'Unknown',
       requested_changes: r.requested_changes || {},
       changes_submitted: r.changes_submitted || {},
+      current_data: {                            
+        first_name: r.employee?.first_name || null,
+        last_name: r.employee?.last_name || null,
+        email: r.employee?.User?.email || null,     
+        phone: r.employee?.phone || null,
+        dob: r.employee?.dob || null,
+        gender: r.employee?.gender || null,
+        pan_number: r.employee?.pan_number || null,
+        aadhaar_number: r.employee?.aadhaar_number || null,
+      },
       status: r.status,
       created_at: r.created_at.toISOString(),
       token_expires_at: r.token_expires_at ? r.token_expires_at.toISOString() : null,
@@ -170,5 +189,8 @@ router.get('/profile/edit/:token', async (req, res) => {
     return res.status(500).json({ success: false, message: 'Server error' });
   }
 });
+
+// One-click approve/reject from email
+router.get('/profile-request/action/:token', handleQuickAction);
 
 module.exports = router;
