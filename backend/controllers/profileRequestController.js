@@ -431,7 +431,7 @@ const finalDecision = async (req, res) => {
       return res.json({ message: 'Final rejection completed' });
     }
 
-    // ─── APPROVE ────────────────────────────────────────────────
+    // ─── APPROVE ───
     const changes = record.changes_submitted || {};
 
     // 1. Update Employee fields
@@ -445,13 +445,13 @@ const finalDecision = async (req, res) => {
       aadhaar_number: changes.aadhaar_number ?? employee.aadhaar_number,
     });
 
-    // 2. Update email in User table if changed
+    // 2. Update email in User table if changed 
     let newEmailUsed = employee.User.email;
     if (changes.email && changes.email.trim() !== employee.User.email) {
       const trimmedEmail = changes.email.trim();
 
-      // Optional: check uniqueness (recommended)
-      const existingUser = await User.findOne({
+      // Check uniqueness
+      const existingUser = await User.findOne({ 
         where: { email: trimmedEmail },
       });
 
@@ -506,9 +506,6 @@ const finalDecision = async (req, res) => {
   }
 };
 
-// ────────────────────────────────────────────────
-//  Quick action endpoint (email links)
-// ────────────────────────────────────────────────
 const handleQuickAction = async (req, res) => {
   const { token } = req.params;
 

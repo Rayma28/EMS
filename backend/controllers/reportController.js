@@ -26,7 +26,7 @@ const getEmployeeReport = async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename=employees_report.xlsx');
     res.send(excelBuffer);
   } catch (err) {
-    console.error('Employee report error:', err);
+    console.error('Employee report error:', err); // log the error for debugging and return a generic message
     res.status(500).json({
       message: 'Failed to generate employee report',
       error: process.env.NODE_ENV === 'development' ? err.message : undefined,
@@ -38,7 +38,7 @@ const getAttendanceReport = async (req, res) => {
   const { month, year } = req.query;
 
   try {
-    // Validate input
+    // Validate input 
     if (!month && !year) {
       return res.status(400).json({ message: 'Please provide month (YYYY-MM) or year' });
     }
@@ -76,7 +76,7 @@ const getAttendanceReport = async (req, res) => {
       ],
       order: [['date', 'ASC']],
     });
-
+    
     const leaves = await LeaveRequest.findAll({
       where: {
         [Op.and]: [
@@ -92,7 +92,7 @@ const getAttendanceReport = async (req, res) => {
       ],
     });
 
-    // Always generate Excel
+    // Always generate Excel 
     const excelBuffer = await generateExcel({ attendances, leaves }, 'attendance');
 
     res.setHeader(

@@ -70,6 +70,7 @@ const AttendanceLegend: React.FC = () => (
   </Box>
 );
 
+// Dashboard components
 const Dashboard: React.FC = () => {
   const role = useSelector((state: RootState) => state.auth.role) as string;
   const [loading, setLoading] = useState<boolean>(true);
@@ -97,6 +98,7 @@ const Dashboard: React.FC = () => {
     return new Date(year, month - 1, day);
   };
 
+  // Fetch current employee ID for Employee-specific data (leave balance, salary, attendance)
   useEffect(() => {
     const fetchCurrentEmployee = async () => {
       try {
@@ -114,7 +116,8 @@ const Dashboard: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-
+        
+        // Fetch all necessary data in parallel with error handling for each endpoint
         const [empRes, leaveRes, payrollRes, attendanceRes, performanceRes] = await Promise.all([
           api.get('/employees').catch(() => ({ data: [] })),
           api.get('/leaves').catch(() => ({ data: [] })),
@@ -123,6 +126,7 @@ const Dashboard: React.FC = () => {
           api.get('/performance').catch(() => ({ data: [] })),
         ]);
 
+        // Process data with safe defaults to prevent crashes if any endpoint fails
         const employees: any[] = empRes.data || [];
         const leaves: any[] = leaveRes.data || [];
         const payrolls: any[] = payrollRes.data || [];
