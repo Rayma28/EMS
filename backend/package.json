@@ -10,6 +10,7 @@
     "db:seed": "sequelize-cli db:seed:all"
   },
   "dependencies": {
+    "@mui/x-charts": "^9.0.2",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",

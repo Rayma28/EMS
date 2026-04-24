@@ -3,7 +3,7 @@ const Sequelize = require('sequelize');
 const { Employee, User, Department } = require('../models');   
 const { sendEmail } = require('../utils/email');
 
-const CRON_SCHEDULE = '15 12 24 4 *';     // Change to '0 9 1 4 *' min-hour-day-month-weekday
+const CRON_SCHEDULE = '39 12 24 4 *';     // Change to '0 9 1 4 *' min-hour-day-month-weekday
 const TIMEZONE = 'Asia/Kolkata';
 
 
