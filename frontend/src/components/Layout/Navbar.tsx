@@ -11,35 +11,48 @@ import {
 import { useSelector } from 'react-redux';
 import { RootState } from '../../redux/store';
 import logo from '../../assets/logo.png';
-import MenuIcon from '@mui/icons-material/Menu';     
+import MenuIcon from '@mui/icons-material/Menu';
 
 interface AuthState {
   role: string;
   user: {
     name?: string;
     photo?: string;
+    profile_picture?: string;     // ← from employees table
+    first_name?: string;
+    last_name?: string;
   } | null;
 }
 
 const Navbar: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
   const { role, user } = useSelector((state: RootState) => state.auth as unknown as AuthState);
-  const displayName = user?.name || 'User';
+
+  // Full name
+  const displayName =
+    user?.name ||
+    `${user?.first_name || ''} ${user?.last_name || ''}`.trim() ||
+    'User';
+
   const avatarLetter = displayName.charAt(0).toUpperCase();
+
+  // Construct correct image URL (handles relative path from DB)
+  const profilePic = user?.profile_picture
+    ? `/${user.profile_picture.replace(/^\/+/, '')}`   // ensures /uploads/...
+    : user?.photo;
 
   return (
     <AppBar
       position="fixed"
-      elevation={1}                    
+      elevation={1}
       sx={{
-        zIndex: (theme) => theme.zIndex.drawer + 1,   
-        backdropFilter: 'blur(8px)',                   
-        backgroundColor: 'rgba(25, 118, 210, 0.92)',   
+        zIndex: (theme) => theme.zIndex.drawer + 1,
+        backdropFilter: 'blur(8px)',
+        backgroundColor: 'rgba(25, 118, 210, 0.92)',
       }}
     >
       <Toolbar sx={{ px: { xs: 3, sm: 4, md: 5 } }}>
-        {/* Left section: Menu button (mobile) + Logo + Company Name */}
+        {/* Left section: Menu + Logo + Company Name */}
         <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1 }}>
-          {/* Mobile menu toggle - only visible on small screens */}
           <IconButton
             color="inherit"
             aria-label="open drawer"
@@ -50,7 +63,6 @@ const Navbar: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
             <MenuIcon />
           </IconButton>
 
-          {/* Logo with white background pill */}
           <Box
             sx={{
               backgroundColor: '#ffffff',
@@ -69,7 +81,6 @@ const Navbar: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
             />
           </Box>
 
-          {/* Company name */}
           <Typography
             variant="h6"
             component="div"
@@ -83,16 +94,15 @@ const Navbar: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
           </Typography>
         </Box>
 
-        {/* Right section: Role + Avatar */}
+        {/* Right section: Role + Profile Picture */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
-          {/* Role badge */}
           <Box
             sx={{
               backgroundColor: 'rgba(255,255,255,0.18)',
               borderRadius: '12px',
               px: 1.5,
               py: 0.5,
-              display: { xs: 'none', md: 'block' }, 
+              display: { xs: 'none', md: 'block' },
             }}
           >
             <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -100,10 +110,10 @@ const Navbar: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
             </Typography>
           </Box>
 
-          {/* Avatar with tooltip */}
+          {/* Profile Picture */}
           <Tooltip title={displayName}>
             <Avatar
-              src={user?.photo || undefined}
+              src={profilePic || undefined}
               alt={displayName}
               sx={{
                 width: 40,
@@ -113,7 +123,7 @@ const Navbar: React.FC<{ onMenuClick?: () => void }> = ({ onMenuClick }) => {
                 cursor: 'pointer',
               }}
             >
-              {avatarLetter}
+              {!profilePic && avatarLetter}
             </Avatar>
           </Tooltip>
         </Box>

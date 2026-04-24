@@ -27,7 +27,6 @@ import {
   Assessment,
   Assignment,
   Person,
-  Settings,
   Logout as LogoutIcon,
 } from '@mui/icons-material';
 
@@ -43,7 +42,6 @@ const iconMap: Record<string, React.ReactElement> = {
   Requests: <Assignment />,
   Users: <People />,
   Profile: <Person />,
-  Settings: <Settings />,
   ProfileRequests: <Assignment />,
 };
 

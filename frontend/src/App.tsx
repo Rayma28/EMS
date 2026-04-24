@@ -29,7 +29,6 @@ import UserManagement from './pages/UserManagement.tsx';
 import PerformanceManagement from './pages/PerformanceManagement.tsx';
 import Reports from './pages/Reports.tsx'
 import Profile from './pages/Profile.tsx';
-import Settings from './pages/Settings.tsx';
 import Requests from './pages/Requests.tsx';
 import Layout from './components/Layout/Layout.tsx';
 import ProfileEditTokenPage from './pages/ProfileEditTokenPage.tsx';
@@ -121,11 +120,6 @@ const AppContent: React.FC = () => {
         <Route 
           path="/profile/profile/edit/:token" 
           element={<PrivateRoute roles={['Employee', 'HR', 'Manager', 'Admin']}><ProfileEditTokenPage /></PrivateRoute>} 
-        />
-
-        <Route
-          path="/settings"
-          element={<PrivateRoute roles={['Admin', 'Superuser']}><Settings /></PrivateRoute>}
         />
 
         <Route 
